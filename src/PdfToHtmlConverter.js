@@ -94,16 +94,22 @@ class PdfToHtmlConverter {
       images = await this.imageExtractor.extractImages(page, operatorList, viewport);
     }
     
-    // Detect tables and lists using specialized detectors
+    // Detect lists and tables using specialized detectors
+    // IMPORTANT: Detect lists FIRST to prevent lists from being misidentified as tables
     let tables = [];
     let lists = [];
     
-    if (options.includeTables) {
-      tables = this.tableDetector.detectTables(elements);
-    }
-    
     if (options.includeLists) {
       lists = this.listDetector.detectLists(elements);
+    }
+    
+    if (options.includeTables) {
+      // Merge adjacent elements for better table detection
+      // This helps when spaces and numbers are separate elements
+      const mergedElements = this.elementExtractor.mergeAdjacentElements(elements, 10);
+      
+      // Pass lists to table detector so it can exclude list elements
+      tables = this.tableDetector.detectTables(mergedElements, null, lists);
     }
     
     // Generate HTML using HtmlGenerator

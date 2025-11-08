@@ -7,12 +7,27 @@ class TableDetector {
    * Detect table structures in text elements
    * @param {Array} elements - Text elements
    * @param {Array} rows - Pre-grouped rows (optional)
+   * @param {Array} lists - Detected lists to exclude (optional)
    * @returns {Array} Array of detected tables
    */
-  detectTables(elements, rows = null) {
+  detectTables(elements, rows = null, lists = []) {
+    // Create a set of list elements to exclude (using source elements)
+    const listElements = new Set();
+    lists.forEach(list => {
+      list.forEach(item => {
+        if (item.sourceElements) {
+          // Add all source elements used in this list item
+          item.sourceElements.forEach(el => listElements.add(el));
+        }
+      });
+    });
+    
+    // Filter out list elements
+    const filteredElements = elements.filter(el => !listElements.has(el));
+    
     // Group into rows if not provided
     if (!rows) {
-      rows = this.groupIntoRows(elements);
+      rows = this.groupIntoRows(filteredElements);
     }
     
     const tables = [];
@@ -21,9 +36,12 @@ class TableDetector {
     let prevRowColumnCount = 0;
     
     for (const row of rows) {
-      // A table row should have at least 2-3 columns with similar structure
-      if (row.length >= 2) {
-        // Check if elements are aligned (potential table)
+      // Check if this row could be part of a table
+      const hasMultipleColumns = row.length >= 3;
+      const hasSingleColumn = row.length === 1;
+      
+      if (hasMultipleColumns) {
+        // Multi-column row - potential table header or data row
         const hasAlignment = this.checkAlignment(row);
         const columnCount = row.length;
         
@@ -31,14 +49,14 @@ class TableDetector {
         const hasConsistentColumns = prevRowColumnCount === 0 || 
                                       Math.abs(columnCount - prevRowColumnCount) <= 2;
         
-        if (hasAlignment && columnCount >= 3 && hasConsistentColumns) {
+        if (hasAlignment && hasConsistentColumns) {
           // Check if this row is close to previous row (part of same table)
           if (prevRowY !== null && Math.abs(row[0].y - prevRowY) < 40) {
             currentTable.push(row);
             prevRowColumnCount = columnCount;
           } else {
-            // Save previous table if it has at least 3 rows
-            if (currentTable.length >= 3) {
+            // Save previous table if it has at least 2 rows (reduced from 3)
+            if (currentTable.length >= 2) {
               tables.push(currentTable);
             }
             currentTable = [row];
@@ -47,7 +65,28 @@ class TableDetector {
           prevRowY = row[0].y;
         } else {
           // Not a valid table row, save previous table if valid
-          if (currentTable.length >= 3) {
+          if (currentTable.length >= 2) {
+            tables.push(currentTable);
+          }
+          currentTable = [];
+          prevRowY = null;
+          prevRowColumnCount = 0;
+        }
+      } else if (hasSingleColumn && currentTable.length > 0 && prevRowY !== null) {
+        // Single column row - could be part of table if following a multi-column header
+        // Check if it's close to the previous row
+        if (Math.abs(row[0].y - prevRowY) < 40) {
+          // Add this single-column row to the table
+          // Expand it to match the column count by repeating the value
+          const expandedRow = [];
+          for (let i = 0; i < prevRowColumnCount; i++) {
+            expandedRow.push(row[0]);
+          }
+          currentTable.push(expandedRow);
+          prevRowY = row[0].y;
+        } else {
+          // Too far from previous row, end table
+          if (currentTable.length >= 2) {
             tables.push(currentTable);
           }
           currentTable = [];
@@ -55,8 +94,8 @@ class TableDetector {
           prevRowColumnCount = 0;
         }
       } else {
-        // Single/double column row, end current table
-        if (currentTable.length >= 3) {
+        // Row doesn't fit table pattern, end current table
+        if (currentTable.length >= 2) {
           tables.push(currentTable);
         }
         currentTable = [];
@@ -66,7 +105,7 @@ class TableDetector {
     }
     
     // Don't forget the last table
-    if (currentTable.length >= 3) {
+    if (currentTable.length >= 2) {
       tables.push(currentTable);
     }
     
@@ -124,14 +163,14 @@ class TableDetector {
     }
     
     // Elements should have reasonable gaps (not continuous text, not too far apart)
-    const hasReasonableGaps = gaps.every(gap => gap > 5 && gap < 200);
+    // Very lenient: allow small overlaps and wide gaps for various table formats  
+    const hasReasonableGaps = gaps.every(gap => gap >= -5 && gap < 400);
     
-    // Check for somewhat consistent spacing
-    const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
-    const variance = gaps.reduce((sum, gap) => sum + Math.abs(gap - avgGap), 0) / gaps.length;
+    if (!hasReasonableGaps) return false;
     
-    // Stricter criteria: need reasonable gaps AND reasonable consistency
-    return hasReasonableGaps && variance < 50;
+    // For rows with 3+ elements, be lenient and assume it's likely a table
+    // Just return true if gaps are reasonable
+    return true;
   }
 }
 

@@ -65,6 +65,65 @@ class ElementExtractor {
     
     return rows;
   }
+
+  /**
+   * Merge adjacent text elements on the same line into logical cells
+   * This is useful for table detection where spaces are separate elements
+   * @param {Array} elements - Text elements
+   * @param {number} maxGap - Maximum gap between elements to merge (default: 10)
+   * @returns {Array} Array of merged elements
+   */
+  mergeAdjacentElements(elements, maxGap = 10) {
+    if (!elements || elements.length === 0) return [];
+    
+    // First group into rows
+    const rows = this.groupIntoRows(elements);
+    const mergedElements = [];
+    
+    rows.forEach(row => {
+      // Filter out empty elements
+      const nonEmptyElements = row.filter(el => el.text.trim().length > 0);
+      
+      if (nonEmptyElements.length === 0) return;
+      
+      let merged = [];
+      let currentCell = null;
+      
+      for (const element of nonEmptyElements) {
+        if (!currentCell) {
+          currentCell = { 
+            ...element,
+            sourceElements: [element] // Track original elements
+          };
+        } else {
+          const gap = element.x - (currentCell.x + currentCell.width);
+          
+          // If gap is small, merge into current cell
+          if (gap <= maxGap) {
+            currentCell.text += element.text;
+            currentCell.width = (element.x + element.width) - currentCell.x;
+            currentCell.sourceElements.push(element);
+          } else {
+            // Gap is large, this is a new cell
+            merged.push(currentCell);
+            currentCell = { 
+              ...element,
+              sourceElements: [element]
+            };
+          }
+        }
+      }
+      
+      // Don't forget the last cell
+      if (currentCell) {
+        merged.push(currentCell);
+      }
+      
+      mergedElements.push(...merged);
+    });
+    
+    return mergedElements;
+  }
 }
 
 module.exports = ElementExtractor;

@@ -13,44 +13,99 @@ class HtmlGenerator {
    * @returns {string} Generated HTML
    */
   generateHtml(elements, images, tables, lists, viewport) {
-    let html = '';
-    
+    // Create a unified structure with all content in document order
+    const contentItems = [];
     const processedElements = new Set();
     
-    // Mark elements used in tables and lists
-    tables.forEach(table => {
-      table.forEach(row => row.forEach(el => processedElements.add(el)));
+    // Add tables with their Y positions
+    tables.forEach((table, tableIndex) => {
+      const minY = Math.min(...table.map(row => Math.min(...row.map(el => el.y))));
+      contentItems.push({
+        type: 'table',
+        y: minY,
+        data: table,
+        index: tableIndex
+      });
+      // Mark source elements as processed (these are the original elements)
+      table.forEach(row => row.forEach(el => {
+        if (el.sourceElements) {
+          el.sourceElements.forEach(src => processedElements.add(src));
+        } else {
+          processedElements.add(el);
+        }
+      }));
     });
-    lists.forEach(list => {
-      list.forEach(el => processedElements.add(el));
+    
+    // Add lists with their Y positions
+    lists.forEach((list, listIndex) => {
+      const minY = Math.min(...list.map(item => {
+        if (item.sourceElements && item.sourceElements.length > 0) {
+          return item.sourceElements[0].y;
+        }
+        return item.y || 0;
+      }));
+      contentItems.push({
+        type: 'list',
+        y: minY,
+        data: list,
+        index: listIndex
+      });
+      // Mark source elements as processed
+      list.forEach(item => {
+        if (item.sourceElements) {
+          item.sourceElements.forEach(el => processedElements.add(el));
+        } else {
+          processedElements.add(item);
+        }
+      });
+    });
+    
+    // Add images with their Y positions
+    images.forEach((image, imageIndex) => {
+      contentItems.push({
+        type: 'image',
+        y: image.y || 0,
+        data: image,
+        index: imageIndex
+      });
     });
     
     // Group remaining text elements into semantic blocks
     const blocks = this.groupIntoSemanticBlocks(elements, processedElements);
     
-    // Generate semantic HTML for blocks
+    // Add blocks to content items
     blocks.forEach(block => {
-      if (block.type === 'header') {
-        const level = this.getHeaderLevel(block.fontSize);
-        html += `<h${level}>${this.escapeHtml(block.text)}</h${level}>\n`;
-      } else if (block.type === 'paragraph') {
-        html += `<p>${this.escapeHtml(block.text)}</p>\n`;
+      contentItems.push({
+        type: block.type,
+        y: block.y,
+        data: block
+      });
+    });
+    
+    // Sort all content by Y position (document order)
+    contentItems.sort((a, b) => a.y - b.y);
+    
+    // Generate HTML in document order
+    let html = '';
+    contentItems.forEach(item => {
+      switch (item.type) {
+        case 'header':
+          const level = this.getHeaderLevel(item.data.fontSize);
+          html += `<h${level}>${this.escapeHtml(item.data.text)}</h${level}>\n`;
+          break;
+        case 'paragraph':
+          html += `<p>${this.escapeHtml(item.data.text)}</p>\n`;
+          break;
+        case 'table':
+          html += this.generateTableHtml(item.data, item.index);
+          break;
+        case 'list':
+          html += this.generateListHtml(item.data, item.index);
+          break;
+        case 'image':
+          html += this.generateImageHtml(item.data, item.index);
+          break;
       }
-    });
-    
-    // Add tables
-    tables.forEach((table, tableIndex) => {
-      html += this.generateTableHtml(table, tableIndex);
-    });
-    
-    // Add lists
-    lists.forEach((list, listIndex) => {
-      html += this.generateListHtml(list, listIndex);
-    });
-    
-    // Add images with base64 data
-    images.forEach((image, imageIndex) => {
-      html += this.generateImageHtml(image, imageIndex);
     });
     
     return html;
@@ -83,22 +138,30 @@ class HtmlGenerator {
       
       if (currentBlock && lastElement) {
         const verticalGap = Math.abs(element.y - lastElement.y);
-        const horizontalGap = element.x - (lastElement.x + lastElement.width);
         const fontSizeDiff = Math.abs(element.fontSize - currentBlock.fontSize);
         
         // Same line (within 5px vertically)
         const isSameLine = verticalGap < 5;
         
-        // Next line in same paragraph (reasonable vertical gap, similar font size)
-        const isNextLineInParagraph = verticalGap > 5 && verticalGap < 25 && 
+        // Check if this line starts at or near the left margin of the paragraph
+        const isAtLeftMargin = Math.abs(element.x - currentBlock.x) < 10;
+        
+        // Detect paragraph breaks:
+        // - Large vertical gaps (30px+)
+        // - OR returning to left margin with a gap larger than normal line spacing (>20px)
+        const normalLineSpacing = verticalGap > 5 && verticalGap <= 20;
+        const largeParagraphGap = verticalGap > 20;
+        const isParagraphBreak = largeParagraphGap && isAtLeftMargin;
+        
+        // Next line in same paragraph
+        const isNextLineInParagraph = (normalLineSpacing || (largeParagraphGap && !isAtLeftMargin)) && 
                                       fontSizeDiff < 2 && 
                                       blockType === currentBlock.type &&
                                       !isHeader;
         
-        // Check if element has end-of-line marker
-        const hasEOL = lastElement.hasEOL;
-        
-        shouldContinue = (isSameLine || (isNextLineInParagraph && !hasEOL)) && 
+        // Continue only if same line or next line in paragraph (not a paragraph break)
+        shouldContinue = !isParagraphBreak &&
+                        (isSameLine || isNextLineInParagraph) && 
                         blockType === currentBlock.type &&
                         fontSizeDiff < 2;
       }
