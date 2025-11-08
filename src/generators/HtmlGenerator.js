@@ -152,18 +152,32 @@ class HtmlGenerator {
         // Check if this line starts at or near the left margin of the paragraph
         const isAtLeftMargin = Math.abs(element.x - currentBlock.x) < 10;
         
+        // Check if current block is very short (likely a standalone heading or label)
+        const currentBlockIsShort = currentBlock.text.trim().length < 10;
+        
         // Detect paragraph breaks:
-        // - Large vertical gaps (30px+)
-        // - OR returning to left margin with a gap larger than normal line spacing (>20px)
-        const normalLineSpacing = verticalGap > 5 && verticalGap <= 20;
-        const largeParagraphGap = verticalGap > 20;
-        const isParagraphBreak = largeParagraphGap && isAtLeftMargin;
+        // - Large vertical gaps (15px+) 
+        // - OR returning to left margin with a gap larger than normal line spacing (>12px)
+        // - OR very short text on a line by itself (likely a heading or separate element)
+        // - OR previous line was very short (likely standalone element)
+        const normalLineSpacing = verticalGap > 5 && verticalGap <= 12;
+        const largeParagraphGap = verticalGap > 12;
+        
+        // Consider it a paragraph break if:
+        // 1. Large gap AND at left margin
+        // 2. OR element has very short text (< 10 chars) suggesting standalone line
+        // 3. OR previous block was very short (< 10 chars) suggesting it was standalone
+        const isShortStandaloneLine = element.text.trim().length < 10 && largeParagraphGap;
+        const isParagraphBreak = (largeParagraphGap && isAtLeftMargin) || 
+                                isShortStandaloneLine || 
+                                (currentBlockIsShort && verticalGap > 5);
         
         // Next line in same paragraph
-        const isNextLineInParagraph = (normalLineSpacing || (largeParagraphGap && !isAtLeftMargin)) && 
+        const isNextLineInParagraph = (normalLineSpacing || (largeParagraphGap && !isAtLeftMargin && !isShortStandaloneLine)) && 
                                       fontSizeDiff < 2 && 
                                       blockType === currentBlock.type &&
-                                      !isHeader;
+                                      !isHeader &&
+                                      !currentBlockIsShort;
         
         // Continue only if same line or next line in paragraph (not a paragraph break)
         shouldContinue = !isParagraphBreak &&
