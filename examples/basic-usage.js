@@ -1,0 +1,104 @@
+const { convertPdfToHtml, convertPdfToSingleHtml, PdfToHtmlConverter } = require('../src/index');
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * Basic usage example for the PDF to HTML converter
+ */
+
+async function main() {
+  console.log('PDF to HTML Converter - Basic Usage Example\n');
+
+  // Example 1: Convert PDF to array of pages
+  console.log('Example 1: Converting PDF to HTML pages...');
+  try {
+    const pdfPath = path.join(__dirname, 'sample.pdf');
+    
+    // Check if sample PDF exists
+    if (!fs.existsSync(pdfPath)) {
+      console.log('Note: sample.pdf not found. Please add a PDF file to the examples folder.');
+      console.log('Creating a placeholder for demonstration...\n');
+    }
+
+    // Create converter instance
+    const converter = new PdfToHtmlConverter({
+      includeStyles: true,
+      includeImages: true,
+      includeTables: true,
+      includeLists: true
+    });
+
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
+
+  // Example 2: Convert to single HTML document
+  console.log('\nExample 2: Converting PDF to single HTML document...');
+  try {
+    const pdfPath = path.join(__dirname, 'sample.pdf');
+
+    if (fs.existsSync(pdfPath)) {
+      const innerHtml = await convertPdfToSingleHtml(pdfPath);
+
+      // Create output directory if it doesn't exist
+      const outputDir = path.join(__dirname, 'output');
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+
+      // Wrap the inner HTML content in a complete HTML document
+      const completeHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF to HTML Conversion</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  ${innerHtml}
+</body>
+</html>`;
+
+      const outputPath = path.join(outputDir, 'complete-document.html');
+      fs.writeFileSync(outputPath, completeHtml);
+      console.log(`Saved complete document to ${outputPath}`);
+    } else {
+      console.log('Add a sample.pdf file to try this example.');
+    }
+
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
+
+  // Example 3: Using custom options
+  console.log('\nExample 3: Custom conversion options...');
+  const customConverter = new PdfToHtmlConverter({
+    includeStyles: true,
+    includeImages: false,  // Disable images
+    includeTables: true,
+    includeLists: true,
+    imageFormat: 'jpeg'
+  });
+
+  console.log('Converter initialized with custom options:');
+  console.log('- Styles: enabled');
+  console.log('- Images: disabled');
+  console.log('- Tables: enabled');
+  console.log('- Lists: enabled');
+
+  console.log('\n=== Setup Instructions ===');
+  console.log('1. Run: npm install');
+  console.log('2. Add a sample PDF file to examples/sample.pdf');
+  console.log('3. Run: npm run example');
+  console.log('4. Check the examples/output/ folder for converted HTML files');
+}
+
+main().catch(console.error);

@@ -1,0 +1,31 @@
+{
+  "name": "pdf-to-html-converter",
+  "version": "1.0.1",
+  "description": "A Node.js library to convert PDF files to HTML with styles and elements like images, lists, and tables, processing page by page",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node examples/test.js",
+    "example": "node examples/basic-usage.js"
+  },
+  "keywords": [
+    "pdf",
+    "html",
+    "converter",
+    "pdf-to-html",
+    "pdf-parser",
+    "document-converter"
+  ],
+  "author": "KanakaPrabhath",
+  "license": "MIT",
+  "dependencies": {
+    "pdfjs-dist": "^5.4.394"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KanakaPrabhath/pdf-to-html.git"
+  }
+}
