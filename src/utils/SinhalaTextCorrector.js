@@ -37,16 +37,51 @@ class SinhalaTextCorrector {
 
     let corrected = text;
 
-    // Apply word corrections
+    // First normalize Unicode to ensure consistency
+    corrected = corrected.normalize('NFC');
+
+    // Apply word corrections (specific fixes) - these are complete word replacements
     corrected = this.applyCorrections(corrected, this.corrections.words);
 
-    // Apply pattern corrections (for spacing issues, etc.)
+    // Apply pattern corrections (for spacing issues, combining marks, etc.)
     corrected = this.applyCorrections(corrected, this.corrections.patterns);
 
-    // Normalize Unicode
+    // Additional cleanup for common Sinhala PDF extraction issues
+    corrected = this.cleanupSinhalaText(corrected);
+
+    // Final normalization
     corrected = corrected.normalize('NFC');
 
     return corrected;
+  }
+
+  /**
+   * Additional cleanup for common Sinhala PDF extraction issues
+   * @param {string} text - Text to clean
+   * @returns {string} Cleaned text
+   */
+  cleanupSinhalaText(text) {
+    let cleaned = text;
+
+    // Fix specific common patterns with multiple spaces
+    // Pattern: ප්‍ ර X (where X is any Sinhala character) -> ප්‍රX
+    cleaned = cleaned.replace(/ප්‍\s+ර\s+([අ-ෆ])/g, 'ප්‍ර$1');
+    
+    // Pattern: ප්‍ X where X is a character that should be attached
+    cleaned = cleaned.replace(/ප්‍\s+([තදමශ])/g, 'ප්‍$1');
+    
+    // Fix spacing around combining marks (vowel signs, etc.)
+    // Sinhala vowel signs: 0DCA-0DDF
+    cleaned = cleaned.replace(/\s+([\u0DCA-\u0DDF])/g, '$1');
+    
+    // Fix spacing before virama (hal kirima) and ra-karanshaya
+    cleaned = cleaned.replace(/([අ-ෆ])\s+(්)/g, '$1$2');
+    cleaned = cleaned.replace(/([අ-ෆ])\s+(්‍ර)/g, '$1$2');
+    
+    // Remove excessive spaces
+    cleaned = cleaned.replace(/\s{2,}/g, ' ');
+
+    return cleaned;
   }
 
   /**
@@ -62,7 +97,9 @@ class SinhalaTextCorrector {
     for (const [wrong, correct] of Object.entries(corrections)) {
       // Escape special regex characters in the wrong text
       const escapedWrong = wrong.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      result = result.replace(new RegExp(escapedWrong, 'g'), correct);
+      // Use global flag to replace all occurrences
+      const regex = new RegExp(escapedWrong, 'g');
+      result = result.replace(regex, correct);
     }
     return result;
   }

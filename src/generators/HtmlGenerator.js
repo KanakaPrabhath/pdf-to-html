@@ -1,8 +1,14 @@
+const SinhalaTextCorrector = require('../utils/SinhalaTextCorrector');
+
 /**
  * HTML Generator
  * Generates HTML from PDF elements
  */
 class HtmlGenerator {
+  constructor() {
+    this.textCorrector = new SinhalaTextCorrector();
+  }
+
   /**
    * Generate HTML from extracted elements
    * @param {Array} elements - Text elements
@@ -173,6 +179,10 @@ class HtmlGenerator {
       } else {
         // Save current block and start new one
         if (currentBlock && currentBlock.text.trim()) {
+          // Apply Sinhala corrections to the combined text
+          if (this.textCorrector.containsSinhala(currentBlock.text)) {
+            currentBlock.text = this.textCorrector.correctText(currentBlock.text);
+          }
           blocks.push(currentBlock);
         }
         
@@ -188,8 +198,11 @@ class HtmlGenerator {
       lastElement = element;
     }
     
-    // Add last block
+    // Add last block (with Sinhala corrections)
     if (currentBlock && currentBlock.text.trim()) {
+      if (this.textCorrector.containsSinhala(currentBlock.text)) {
+        currentBlock.text = this.textCorrector.correctText(currentBlock.text);
+      }
       blocks.push(currentBlock);
     }
     
@@ -228,7 +241,14 @@ class HtmlGenerator {
         const style = rowIndex === 0 
           ? 'border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2; font-weight: bold;'
           : 'border: 1px solid #ddd; padding: 8px; text-align: left;';
-        html += `    <${tag} style="${style}">${this.escapeHtml(cell.text)}</${tag}>\n`;
+        
+        // Apply Sinhala corrections to table cell text
+        let text = cell.text;
+        if (this.textCorrector.containsSinhala(text)) {
+          text = this.textCorrector.correctText(text);
+        }
+        
+        html += `    <${tag} style="${style}">${this.escapeHtml(text)}</${tag}>\n`;
       });
       html += '  </tr>\n';
     });
@@ -255,7 +275,14 @@ class HtmlGenerator {
     
     list.forEach(item => {
       // Use cleaned text (markers already removed by ListDetector)
-      html += `  <li style="margin: 5px 0;">${this.escapeHtml(item.text)}</li>\n`;
+      let text = item.text;
+      
+      // Apply Sinhala corrections to list item text
+      if (this.textCorrector.containsSinhala(text)) {
+        text = this.textCorrector.correctText(text);
+      }
+      
+      html += `  <li style="margin: 5px 0;">${this.escapeHtml(text)}</li>\n`;
     });
     
     html += `</${tag}>\n`;

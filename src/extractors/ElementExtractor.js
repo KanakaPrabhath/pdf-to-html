@@ -1,14 +1,8 @@
-const SinhalaTextCorrector = require('../utils/SinhalaTextCorrector');
-
 /**
  * Element Extractor
  * Extracts and processes text elements from PDF pages
  */
 class ElementExtractor {
-  constructor() {
-    this.textCorrector = new SinhalaTextCorrector();
-  }
-
   /**
    * Extract text elements with positioning and styling
    * @param {Object} textContent - PDF.js text content
@@ -24,10 +18,8 @@ class ElementExtractor {
       // Get original text
       let text = item.str;
       
-      // Apply Sinhala text corrections for PDFs with encoding issues
-      if (this.textCorrector.containsSinhala(text)) {
-        text = this.textCorrector.correctText(text);
-      }
+      // Skip Sinhala text correction here - it will be applied after text is combined
+      // Because PDF text is often split across multiple items, and patterns need combined text
       
       // Apply Unicode normalization (NFC - Canonical Decomposition, followed by Canonical Composition)
       // This ensures consistent representation of characters with diacritics and combining marks
