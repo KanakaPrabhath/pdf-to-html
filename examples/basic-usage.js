@@ -68,7 +68,8 @@ async function main() {
 </html>`;
 
       const outputPath = path.join(outputDir, 'complete-document.html');
-      fs.writeFileSync(outputPath, completeHtml);
+      // Explicitly write with UTF-8 encoding
+      fs.writeFileSync(outputPath, completeHtml, 'utf8');
       console.log(`Saved complete document to ${outputPath}`);
     } else {
       console.log('Add a sample.pdf file to try this example.');

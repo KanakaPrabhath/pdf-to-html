@@ -6,6 +6,7 @@ A powerful Node.js library that converts PDF files to HTML with styles and eleme
 
 - ✅ **Page-by-Page Processing**: Convert PDF documents one page at a time
 - ✅ **Style Preservation**: Maintains fonts, sizes, and formatting
+- ✅ **Unicode Support**: Full support for complex scripts (Sinhala, Tamil, Arabic, CJK, etc.) with NFC normalization
 - ✅ **Table Detection**: Automatically detects and converts tables to HTML tables
 - ✅ **List Recognition**: Identifies and converts bullet points and numbered lists (without duplicate markers)
 - ✅ **Image Extraction**: Extracts and embeds images as base64 with proper encoding
@@ -278,6 +279,23 @@ pdf-to-html/
 - Some advanced PDF features (forms, annotations) are not fully supported
 - Image quality depends on original PDF resolution
 - Very large PDFs may require significant memory
+
+## Unicode and Sinhala Support
+
+The converter has full support for Unicode text, including complex scripts like Sinhala (සිංහල), Tamil (தமிழ்), Arabic (العربية), and more.
+
+**Key features:**
+- Automatic NFC Unicode normalization for consistent character representation
+- Proper handling of combining characters and diacritical marks
+- UTF-8 encoding for all output files
+
+For detailed information, troubleshooting, and testing tools, see [UNICODE_SUPPORT.md](UNICODE_SUPPORT.md).
+
+**Quick test for Sinhala PDFs:**
+```bash
+node test-sinhala.js              # Convert Sinhala PDF
+node debug-unicode.js my-file.pdf  # Debug Unicode extraction
+```
 
 ## Contributing
 

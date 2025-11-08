@@ -15,8 +15,18 @@ class ElementExtractor {
     textContent.items.forEach((item, index) => {
       const tx = item.transform;
       
+      // Normalize Unicode text - handle complex scripts like Sinhala
+      // PDF.js may extract text with combining characters or different normalizations
+      let normalizedText = item.str;
+      
+      // Apply Unicode normalization (NFC - Canonical Decomposition, followed by Canonical Composition)
+      // This ensures consistent representation of characters with diacritics and combining marks
+      if (normalizedText && typeof normalizedText === 'string') {
+        normalizedText = normalizedText.normalize('NFC');
+      }
+      
       elements.push({
-        text: item.str,
+        text: normalizedText,
         x: tx[4],
         y: viewport.height - tx[5], // Invert Y coordinate
         width: item.width,

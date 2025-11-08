@@ -55,8 +55,9 @@ class TableDetector {
             currentTable.push(row);
             prevRowColumnCount = columnCount;
           } else {
-            // Save previous table if it has at least 2 rows (reduced from 3)
-            if (currentTable.length >= 2) {
+            // Save previous table if it has at least 3 rows (increased from 2)
+            // This reduces false positives from paragraph fragments
+            if (currentTable.length >= 3) {
               tables.push(currentTable);
             }
             currentTable = [row];
@@ -65,7 +66,7 @@ class TableDetector {
           prevRowY = row[0].y;
         } else {
           // Not a valid table row, save previous table if valid
-          if (currentTable.length >= 2) {
+          if (currentTable.length >= 3) {
             tables.push(currentTable);
           }
           currentTable = [];
@@ -96,7 +97,7 @@ class TableDetector {
           prevRowY = row[0].y;
         } else {
           // Too far from previous row, end table
-          if (currentTable.length >= 2) {
+          if (currentTable.length >= 3) {
             tables.push(currentTable);
           }
           currentTable = [];
@@ -105,7 +106,7 @@ class TableDetector {
         }
       } else {
         // Row doesn't fit table pattern, end current table
-        if (currentTable.length >= 2) {
+        if (currentTable.length >= 3) {
           tables.push(currentTable);
         }
         currentTable = [];
@@ -115,7 +116,7 @@ class TableDetector {
     }
     
     // Don't forget the last table
-    if (currentTable.length >= 2) {
+    if (currentTable.length >= 3) {
       tables.push(currentTable);
     }
     
@@ -167,20 +168,46 @@ class TableDetector {
     
     // Check if there's spacing between elements (columns)
     const gaps = [];
+    const widths = [];
+    
     for (let i = 1; i < row.length; i++) {
       const gap = row[i].x - (row[i-1].x + row[i-1].width);
       gaps.push(gap);
     }
     
+    for (let i = 0; i < row.length; i++) {
+      widths.push(row[i].width || 0);
+    }
+    
     // Elements should have reasonable gaps (not continuous text, not too far apart)
-    // Very lenient: allow small overlaps and wide gaps for various table formats  
     const hasReasonableGaps = gaps.every(gap => gap >= -5 && gap < 400);
     
     if (!hasReasonableGaps) return false;
     
-    // For rows with 3+ elements, be lenient and assume it's likely a table
-    // Just return true if gaps are reasonable
-    return true;
+    // Additional checks to avoid false positives:
+    
+    // 1. Check if gaps are significant enough (at least 20px for most gaps)
+    //    This prevents regular paragraph text with small spaces from being detected as tables
+    const significantGaps = gaps.filter(gap => gap >= 20).length;
+    const hasSignificantSeparation = significantGaps >= Math.max(1, gaps.length - 1);
+    
+    // 2. Check column width consistency - table cells shouldn't be tiny
+    //    Reject rows where most cells are very short (likely fragments)
+    const avgWidth = widths.reduce((a, b) => a + b, 0) / widths.length;
+    const tinyWidths = widths.filter(w => w < 20).length;
+    const hasMostlyTinyWidths = tinyWidths > widths.length / 2;
+    
+    // 3. Check text content - table cells shouldn't be mostly empty or just 1-2 characters
+    const shortTexts = row.filter(el => (el.text || '').trim().length <= 3).length;
+    const hasMostlyShortTexts = shortTexts > row.length / 2;
+    
+    // Require significant separation AND reasonable cell sizes
+    // Allow exception for rows with many columns (5+) which are more likely tables
+    if (row.length >= 5) {
+      return hasReasonableGaps && !hasMostlyTinyWidths;
+    }
+    
+    return hasSignificantSeparation && !hasMostlyTinyWidths && !hasMostlyShortTexts;
   }
 }
 

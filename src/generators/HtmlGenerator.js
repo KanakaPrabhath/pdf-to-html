@@ -333,11 +333,14 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   /**
-   * Escape HTML special characters
+   * Escape HTML special characters while preserving Unicode
    * @param {string} text - Text to escape
    * @returns {string} Escaped text
    */
   escapeHtml(text) {
+    if (!text || typeof text !== 'string') return '';
+    
+    // Only escape HTML special characters, preserve all Unicode characters
     const map = {
       '&': '&amp;',
       '<': '&lt;',
@@ -345,7 +348,11 @@ h1, h2, h3, h4, h5, h6 {
       '"': '&quot;',
       "'": '&#039;'
     };
-    return text.replace(/[&<>"']/g, m => map[m]);
+    
+    // Ensure text is properly normalized for Unicode
+    const normalized = text.normalize('NFC');
+    
+    return normalized.replace(/[&<>"']/g, m => map[m]);
   }
 
   /**
