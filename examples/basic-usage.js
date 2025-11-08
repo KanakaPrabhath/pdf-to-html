@@ -38,7 +38,15 @@ async function main() {
     const pdfPath = path.join(__dirname, 'sample.pdf');
 
     if (fs.existsSync(pdfPath)) {
+      const startTime = Date.now();
       const innerHtml = await convertPdfToSingleHtml(pdfPath);
+      const endTime = Date.now();
+
+      // Count pages by counting page breaks
+      const pageBreaks = (innerHtml.match(/data-page-number/g) || []).length;
+      const totalPages = pageBreaks + 1; // +1 for the first page
+      
+      console.log(`✓ Converted ${totalPages} pages in ${((endTime - startTime) / 1000).toFixed(2)}s`);
 
       // Create output directory if it doesn't exist
       const outputDir = path.join(__dirname, 'output');
@@ -70,7 +78,8 @@ async function main() {
       const outputPath = path.join(outputDir, 'complete-document.html');
       // Explicitly write with UTF-8 encoding
       fs.writeFileSync(outputPath, completeHtml, 'utf8');
-      console.log(`Saved complete document to ${outputPath}`);
+      console.log(`✓ Saved complete document to ${outputPath}`);
+      console.log(`✓ File size: ${(fs.statSync(outputPath).size / 1024).toFixed(2)} KB`);
     } else {
       console.log('Add a sample.pdf file to try this example.');
     }

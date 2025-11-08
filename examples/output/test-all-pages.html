@@ -3,13 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF to HTML Conversion</title>
+  <title>PDF to HTML - 12 Pages</title>
   <style>
     body {
       margin: 0;
       padding: 20px;
       background: #f0f0f0;
       font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    page-break {
+      display: block;
+      height: 3px;
+      background: linear-gradient(to right, #3498db, #2ecc71);
+      margin: 40px 0;
+      position: relative;
+      border-radius: 2px;
+    }
+    page-break::after {
+      content: "═══ Page " attr(data-page-number) " ═══";
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #f0f0f0;
+      padding: 2px 15px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #2c3e50;
+      font-family: 'Courier New', monospace;
     }
   </style>
 </head>

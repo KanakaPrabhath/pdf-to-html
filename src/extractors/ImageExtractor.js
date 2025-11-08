@@ -57,26 +57,28 @@ class ImageExtractor {
           if (imgData) {
             const base64 = await this.convertToBase64(imgData);
             
-            // Extract position and size from transform matrix
-            const transform = imageOp.transform;
-            const position = this.extractPositionFromTransform(transform, viewport);
-            
-            images.push({
-              type: 'image',
-              name: imageOp.name,
-              base64: base64,
-              mimeType: imgData.mimeType || 'image/png',
-              width: position.width,
-              height: position.height,
-              x: position.x,
-              y: position.y,
-              originalWidth: imgData.width,
-              originalHeight: imgData.height,
-              position: imageOp.index
-            });
+            if (base64) {
+              // Extract position and size from transform matrix
+              const transform = imageOp.transform;
+              const position = this.extractPositionFromTransform(transform, viewport);
+              
+              images.push({
+                type: 'image',
+                name: imageOp.name,
+                base64: base64,
+                mimeType: imgData.mimeType || 'image/png',
+                width: position.width,
+                height: position.height,
+                x: position.x,
+                y: position.y,
+                originalWidth: imgData.width,
+                originalHeight: imgData.height,
+                position: imageOp.index
+              });
+            }
           }
         } catch (imgError) {
-          console.warn(`Failed to extract image ${imageOp.name}:`, imgError.message);
+          // Silently skip images that fail to extract
         }
       }
     } catch (error) {
@@ -143,34 +145,52 @@ class ImageExtractor {
     try {
       const objs = page.objs;
       
-      // Wait for the image to be loaded
+      // Check if the image object exists first
+      if (!objs.has(imageName)) {
+        return null;
+      }
+      
+      // Wait for the image to be loaded with timeout
       return new Promise((resolve, reject) => {
-        objs.get(imageName, (img) => {
-          if (!img) {
-            reject(new Error('Image not found'));
-            return;
-          }
-          
-          try {
-            // Extract image data
-            const canvas = this.createCanvasFromImage(img);
-            if (canvas) {
-              resolve({
-                canvas: canvas,
-                width: img.width || canvas.width,
-                height: img.height || canvas.height,
-                mimeType: 'image/png'
-              });
-            } else {
-              reject(new Error('Failed to create canvas'));
+        // Set timeout to prevent hanging
+        const timeout = setTimeout(() => {
+          reject(new Error(`Timeout waiting for image ${imageName}`));
+        }, 2000); // 2 second timeout
+        
+        // Try to get the object - it might be already loaded
+        try {
+          objs.get(imageName, (img) => {
+            clearTimeout(timeout);
+            
+            if (!img) {
+              resolve(null);
+              return;
             }
-          } catch (err) {
-            reject(err);
-          }
-        });
+            
+            try {
+              // Extract image data
+              const canvas = this.createCanvasFromImage(img);
+              if (canvas) {
+                resolve({
+                  canvas: canvas,
+                  width: img.width || canvas.width,
+                  height: img.height || canvas.height,
+                  mimeType: 'image/png'
+                });
+              } else {
+                resolve(null);
+              }
+            } catch (err) {
+              resolve(null);
+            }
+          });
+        } catch (err) {
+          clearTimeout(timeout);
+          resolve(null);
+        }
       });
     } catch (error) {
-      console.warn(`Error getting image data for ${imageName}:`, error.message);
+      // Silently return null for image extraction errors
       return null;
     }
   }
