@@ -282,12 +282,26 @@ class HtmlGenerator {
     
     // Determine list type from first item's original text
     const firstItem = list[0];
-    const isOrdered = /^\d+[\.\)]/.test(firstItem.originalText || firstItem.text);
+    const isOrdered = /^\d+[\.\)]|^\(\d+\)|^\[\d+\]|^[a-zA-Z][\.\)]|^[\u0D80-\u0DFF][\.\)]|^[ivxlcdm]+[\.\)]|^[IVXLCDM]+[\.\)]/i.test(firstItem.originalText || firstItem.text);
+    
+    return this.renderNestedList(list, isOrdered);
+  }
+
+  /**
+   * Render nested list structure recursively
+   * @param {Array} items - List items (may contain children)
+   * @param {boolean} isOrdered - Whether this is an ordered list
+   * @param {number} depth - Current nesting depth (for styling)
+   * @returns {string} HTML for nested list
+   */
+  renderNestedList(items, isOrdered, depth = 0) {
+    if (!items || items.length === 0) return '';
+    
     const tag = isOrdered ? 'ol' : 'ul';
+    const indent = depth * 20;
+    let html = `<${tag} style="margin: ${depth === 0 ? '10px' : '5px'} 0; padding-left: ${20 + indent}px;">\n`;
     
-    let html = `<${tag} style="margin: 10px 0; padding-left: 20px;">\n`;
-    
-    list.forEach(item => {
+    items.forEach(item => {
       // Use cleaned text (markers already removed by ListDetector)
       let text = item.text;
       
@@ -296,7 +310,14 @@ class HtmlGenerator {
         text = this.textCorrector.correctText(text);
       }
       
-      html += `  <li style="margin: 5px 0;">${this.escapeHtml(text)}</li>\n`;
+      html += `  <li style="margin: 5px 0;">${this.escapeHtml(text)}`;
+      
+      // Render children if they exist
+      if (item.children && item.children.length > 0) {
+        html += '\n' + this.renderNestedList(item.children, isOrdered, depth + 1);
+      }
+      
+      html += `</li>\n`;
     });
     
     html += `</${tag}>\n`;
