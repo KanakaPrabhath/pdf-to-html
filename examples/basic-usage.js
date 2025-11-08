@@ -55,8 +55,9 @@ async function main() {
       }
 
       // Wrap the inner HTML content in a complete HTML document
+      // Added lang="si" for Sinhala and proper font stack for Sinhala rendering
       const completeHtml = `<!DOCTYPE html>
-<html lang="en">
+<html lang="si">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -66,7 +67,7 @@ async function main() {
       margin: 0;
       padding: 20px;
       background: #f0f0f0;
-      font-family: Arial, sans-serif;
+      font-family: 'Noto Sans Sinhala', 'Iskoola Pota', 'FM Abhaya', Arial, sans-serif;
     }
   </style>
 </head>

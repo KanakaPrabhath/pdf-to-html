@@ -305,7 +305,7 @@ class HtmlGenerator {
   }
 
   /**
-   * Generate minimal CSS styles
+   * Generate minimal CSS styles with Sinhala font support
    * @param {Array} elements - Text elements
    * @param {Object} viewport - PDF viewport
    * @returns {string} CSS styles
@@ -316,7 +316,7 @@ body {
   margin: 0;
   padding: 20px;
   background: #f0f0f0;
-  font-family: Arial, sans-serif;
+  font-family: 'Noto Sans Sinhala', 'Iskoola Pota', 'FM Abhaya', 'Nirmala UI', Arial, sans-serif;
   line-height: 1.6;
 }
 
