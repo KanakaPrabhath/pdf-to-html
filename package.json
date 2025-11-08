@@ -5,9 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "test": "node examples/test.js",
-    "example": "node examples/basic-usage.js",
-    "test:sinhala": "node test-sinhala.js",
-    "debug:unicode": "node debug-unicode.js"
+    "example": "node examples/basic-usage.js"
   },
   "keywords": [
     "pdf",
