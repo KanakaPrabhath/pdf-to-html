@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2025-11-08
+
+### Added
+- **Modular Architecture**: Reorganized code into specialized modules
+  - `extractors/ElementExtractor.js`: Text element extraction
+  - `extractors/ImageExtractor.js`: Image extraction with base64 encoding
+  - `detectors/TableDetector.js`: Table structure detection
+  - `detectors/ListDetector.js`: List structure detection
+  - `generators/HtmlGenerator.js`: HTML and CSS generation
+- **Image Base64 Encoding**: Full implementation of image extraction with base64 conversion
+  - Support for grayscale, RGB, and RGBA image formats
+  - Canvas-based image data manipulation
+  - Proper data URL generation with MIME types
+- **ARCHITECTURE.md**: Comprehensive documentation of the modular structure
+
+### Fixed
+- **Paragraph Identification**: Improved paragraph detection algorithm
+  - Better vertical gap analysis between lines
+  - Font size consistency checking
+  - Proper use of `hasEOL` markers from PDF.js
+  - Smarter line break handling
+  - Distinction between same-line continuation and new paragraphs
+- **Image Display**: Images now properly display with base64 encoding
+  - Previously only showed placeholders
+  - Now extracts and embeds actual image data
+- **Double List Markers**: Fixed duplicate bullets and numbers in lists
+  - Lists no longer show "• • Item" or "1. 1. Item"
+  - Markers are properly removed during detection phase
+  - Clean text used in HTML generation
+
+### Changed
+- Refactored `PdfToHtmlConverter.js` to use modular components
+- Updated `README.md` with new features and architecture information
+- Added `canvas` dependency for image processing (v2.11.2)
+
+### Technical Improvements
+- Single Responsibility Principle applied to all modules
+- Better separation of concerns
+- Easier to test individual components
+- Improved maintainability and extensibility
+- No breaking changes to public API
+
 ## [1.0.1] - 2025-11-08
 
 ### Changed

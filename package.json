@@ -18,6 +18,7 @@
   "author": "KanakaPrabhath",
   "license": "MIT",
   "dependencies": {
+    "canvas": "^3.2.0",
     "pdfjs-dist": "^5.4.394"
   },
   "devDependencies": {},

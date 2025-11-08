@@ -5,11 +5,13 @@ A powerful Node.js library that converts PDF files to HTML with styles and eleme
 ## Features
 
 - ✅ **Page-by-Page Processing**: Convert PDF documents one page at a time
-- ✅ **Style Preservation**: Maintains fonts, sizes, and positioning
+- ✅ **Style Preservation**: Maintains fonts, sizes, and formatting
 - ✅ **Table Detection**: Automatically detects and converts tables to HTML tables
-- ✅ **List Recognition**: Identifies and converts bullet points and numbered lists
-- ✅ **Image Extraction**: Extracts and embeds images from PDFs
+- ✅ **List Recognition**: Identifies and converts bullet points and numbered lists (without duplicate markers)
+- ✅ **Image Extraction**: Extracts and embeds images as base64 with proper encoding
+- ✅ **Smart Paragraph Detection**: Improved paragraph identification with proper line break handling
 - ✅ **Flexible Output**: Get individual pages or a complete HTML document
+- ✅ **Modular Architecture**: Organized into specialized modules for easy maintenance and extension
 - ✅ **Customizable**: Control which elements to include in conversion
 
 ## Installation
@@ -228,6 +230,7 @@ async function convertToInnerHtml() {
 - Node.js >= 14.0.0
 - Dependencies:
   - `pdfjs-dist`: PDF parsing and rendering
+  - `canvas`: Image data manipulation and base64 conversion
 
 ## Testing
 
@@ -248,15 +251,26 @@ npm run example
 ```
 pdf-to-html/
 ├── src/
-│   ├── index.js                  # Main entry point
-│   └── PdfToHtmlConverter.js     # Core converter class
+│   ├── index.js                      # Main entry point
+│   ├── PdfToHtmlConverter.js         # Main orchestrator
+│   ├── extractors/                   # Element extraction modules
+│   │   ├── ElementExtractor.js       # Text extraction
+│   │   └── ImageExtractor.js         # Image extraction with base64
+│   ├── detectors/                    # Structure detection modules
+│   │   ├── TableDetector.js          # Table detection
+│   │   └── ListDetector.js           # List detection
+│   └── generators/                   # HTML generation modules
+│       └── HtmlGenerator.js          # HTML/CSS generation
 ├── examples/
-│   ├── basic-usage.js            # Usage examples
-│   └── test.js                   # Test file
+│   ├── basic-usage.js                # Usage examples
+│   └── test.js                       # Test file
+├── ARCHITECTURE.md                   # Detailed architecture documentation
 ├── package.json
 ├── LICENSE
 └── README.md
 ```
+
+**See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed module documentation.**
 
 ## Limitations
 
