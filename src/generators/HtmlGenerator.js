@@ -277,7 +277,29 @@ class HtmlGenerator {
     }
     
     const dataUrl = `data:${image.mimeType};base64,${image.base64}`;
-    const style = 'max-width: 100%; height: auto; display: block; margin: 10px 0;';
+    
+    // Build style with proper dimensions and positioning
+    const styleProps = [];
+    
+    // Set explicit dimensions if available
+    if (image.width && image.width > 0) {
+      styleProps.push(`width: ${image.width}px`);
+    }
+    if (image.height && image.height > 0) {
+      styleProps.push(`height: ${image.height}px`);
+    }
+    
+    // Default styles
+    styleProps.push('display: block');
+    styleProps.push('margin: 10px 0');
+    
+    // If no dimensions were captured, use responsive sizing
+    if (!image.width || !image.height) {
+      styleProps.push('max-width: 100%');
+      styleProps.push('height: auto');
+    }
+    
+    const style = styleProps.join('; ') + ';';
     
     return `<img src="${dataUrl}" alt="Image ${imageIndex + 1}" style="${style}" />\n`;
   }

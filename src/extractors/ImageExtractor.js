@@ -18,18 +18,33 @@ class ImageExtractor {
     try {
       // Track image operations and their transforms
       const imageOps = [];
+      const transformStack = []; // Track transformation matrix stack
+      let currentTransform = [1, 0, 0, 1, 0, 0]; // Identity matrix [a, b, c, d, e, f]
       
       for (let i = 0; i < operatorList.fnArray.length; i++) {
         const fn = operatorList.fnArray[i];
         const args = operatorList.argsArray[i];
         
-        // Detect image painting operations
-        if (fn === pdfjsLib.OPS.paintImageXObject || 
-            fn === pdfjsLib.OPS.paintInlineImageXObject) {
+        // Track graphics state transformations
+        if (fn === pdfjsLib.OPS.transform) {
+          // Apply transformation matrix
+          currentTransform = this.multiplyTransforms(currentTransform, args);
+        } else if (fn === pdfjsLib.OPS.save) {
+          // Save current transform state
+          transformStack.push([...currentTransform]);
+        } else if (fn === pdfjsLib.OPS.restore) {
+          // Restore previous transform state
+          if (transformStack.length > 0) {
+            currentTransform = transformStack.pop();
+          }
+        } else if (fn === pdfjsLib.OPS.paintImageXObject || 
+                   fn === pdfjsLib.OPS.paintInlineImageXObject) {
+          // Image painting operation - capture current transform
           imageOps.push({
             index: i,
             name: args[0],
-            operation: fn
+            operation: fn,
+            transform: [...currentTransform] // Copy current transform
           });
         }
       }
@@ -42,13 +57,21 @@ class ImageExtractor {
           if (imgData) {
             const base64 = await this.convertToBase64(imgData);
             
+            // Extract position and size from transform matrix
+            const transform = imageOp.transform;
+            const position = this.extractPositionFromTransform(transform, viewport);
+            
             images.push({
               type: 'image',
               name: imageOp.name,
               base64: base64,
               mimeType: imgData.mimeType || 'image/png',
-              width: imgData.width,
-              height: imgData.height,
+              width: position.width,
+              height: position.height,
+              x: position.x,
+              y: position.y,
+              originalWidth: imgData.width,
+              originalHeight: imgData.height,
               position: imageOp.index
             });
           }
@@ -61,6 +84,53 @@ class ImageExtractor {
     }
     
     return images;
+  }
+
+  /**
+   * Multiply two transformation matrices
+   * @param {Array} m1 - First transformation matrix [a, b, c, d, e, f]
+   * @param {Array} m2 - Second transformation matrix [a, b, c, d, e, f]
+   * @returns {Array} Resulting transformation matrix
+   */
+  multiplyTransforms(m1, m2) {
+    return [
+      m1[0] * m2[0] + m1[2] * m2[1],           // a
+      m1[1] * m2[0] + m1[3] * m2[1],           // b
+      m1[0] * m2[2] + m1[2] * m2[3],           // c
+      m1[1] * m2[2] + m1[3] * m2[3],           // d
+      m1[0] * m2[4] + m1[2] * m2[5] + m1[4],   // e
+      m1[1] * m2[4] + m1[3] * m2[5] + m1[5]    // f
+    ];
+  }
+
+  /**
+   * Extract position and size from transformation matrix
+   * @param {Array} transform - Transformation matrix [a, b, c, d, e, f]
+   * @param {Object} viewport - PDF.js viewport
+   * @returns {Object} Position and size {x, y, width, height}
+   */
+  extractPositionFromTransform(transform, viewport) {
+    // Transform matrix: [scaleX, skewY, skewX, scaleY, translateX, translateY]
+    const [a, b, c, d, e, f] = transform;
+    
+    // Width and height are determined by the scale factors
+    const width = Math.abs(a);
+    const height = Math.abs(d);
+    
+    // Position in PDF coordinates (bottom-left origin)
+    let x = e;
+    let y = f;
+    
+    // Convert from PDF coordinates (bottom-left origin) to HTML coordinates (top-left origin)
+    // PDF.js viewport handles this conversion
+    const point = viewport.convertToViewportPoint(x, y);
+    
+    return {
+      x: Math.round(point[0]),
+      y: Math.round(point[1]),
+      width: Math.round(width),
+      height: Math.round(height)
+    };
   }
 
   /**
