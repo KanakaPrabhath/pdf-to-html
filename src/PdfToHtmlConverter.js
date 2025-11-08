@@ -79,8 +79,13 @@ class PdfToHtmlConverter {
     const page = await pdfDocument.getPage(pageNumber);
     const viewport = page.getViewport({ scale: 1.5 });
     
-    // Get text content
-    const textContent = await page.getTextContent();
+    // Get text content with Unicode format
+    // normalizeWhitespace: false preserves original spacing
+    // disableCombineTextItems: false allows PDF.js to combine text items efficiently
+    const textContent = await page.getTextContent({
+      normalizeWhitespace: false,
+      disableCombineTextItems: false
+    });
     
     // Get operator list for detailed rendering info
     const operatorList = await page.getOperatorList();
