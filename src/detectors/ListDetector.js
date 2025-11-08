@@ -54,11 +54,18 @@ class ListDetector {
         };
         
         // Check if this is part of the current list or a new list
-        if (currentList.length > 0) {
+        // Items should be close together AND of the same type
+        const isCloseEnough = currentList.length > 0 && Math.abs(element.y - lastListItemY) < 30;
+        const isSameType = currentList.length > 0 ? this.isSameListType(currentList[0], cleanedElement) : true;
+        
+        if (isCloseEnough && isSameType) {
           // Continue current list
           currentList.push(cleanedElement);
         } else {
-          // Start a new list
+          // Start a new list (either first item, too far away, or different type)
+          if (currentList.length > 0) {
+            lists.push([...currentList]);
+          }
           currentList = [cleanedElement];
         }
         
@@ -82,10 +89,14 @@ class ListDetector {
         };
         
         // Check if this is part of the current list
-        if (lastListItemY !== null && Math.abs(element.y - lastListItemY) < 30) {
+        // Items should be close together AND of the same type (both numbered or both bulleted)
+        const isCloseEnough = lastListItemY !== null && Math.abs(element.y - lastListItemY) < 30;
+        const isSameType = currentList.length > 0 ? this.isSameListType(currentList[0], cleanedElement) : true;
+        
+        if (isCloseEnough && isSameType) {
           currentList.push(cleanedElement);
         } else {
-          // Start a new list
+          // Start a new list (either too far away or different type)
           if (currentList.length > 0) {
             lists.push([...currentList]);
           }
@@ -156,6 +167,22 @@ class ListDetector {
     const isNumbered = /^\d+[\.\)]/.test(firstText);
     
     return isNumbered ? 'ordered' : 'unordered';
+  }
+
+  /**
+   * Check if two list items have the same type (both ordered or both unordered)
+   * @param {Object} item1 - First list item
+   * @param {Object} item2 - Second list item
+   * @returns {boolean} True if same type
+   */
+  isSameListType(item1, item2) {
+    const text1 = item1.originalText || item1.text;
+    const text2 = item2.originalText || item2.text;
+    
+    const isNumbered1 = /^\d+[\.\)]/.test(text1);
+    const isNumbered2 = /^\d+[\.\)]/.test(text2);
+    
+    return isNumbered1 === isNumbered2;
   }
 }
 

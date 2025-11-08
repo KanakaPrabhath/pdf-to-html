@@ -77,10 +77,20 @@ class TableDetector {
         // Check if it's close to the previous row
         if (Math.abs(row[0].y - prevRowY) < 40) {
           // Add this single-column row to the table
-          // Expand it to match the column count by repeating the value
+          // Expand it to match the column count - first cell has data, rest are empty
           const expandedRow = [];
           for (let i = 0; i < prevRowColumnCount; i++) {
-            expandedRow.push(row[0]);
+            if (i === 0) {
+              expandedRow.push(row[0]);
+            } else {
+              // Create empty cell placeholder
+              expandedRow.push({ 
+                text: '', 
+                x: row[0].x + (i * 100), // Estimate position
+                y: row[0].y,
+                isEmpty: true 
+              });
+            }
           }
           currentTable.push(expandedRow);
           prevRowY = row[0].y;
