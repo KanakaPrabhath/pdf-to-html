@@ -56,14 +56,8 @@ class HtmlGenerator {
         data: list,
         index: listIndex
       });
-      // Mark source elements as processed
-      list.forEach(item => {
-        if (item.sourceElements) {
-          item.sourceElements.forEach(el => processedElements.add(el));
-        } else {
-          processedElements.add(item);
-        }
-      });
+      // Mark source elements as processed (including nested children)
+      this.markListElementsAsProcessed(list, processedElements);
     });
     
     // Add images with their Y positions
@@ -115,6 +109,27 @@ class HtmlGenerator {
     });
     
     return html;
+  }
+
+  /**
+   * Recursively mark all list elements as processed (including nested children)
+   * @param {Array} list - List items (may contain children)
+   * @param {Set} processedElements - Set to add processed elements to
+   */
+  markListElementsAsProcessed(list, processedElements) {
+    list.forEach(item => {
+      // Mark this item's source elements
+      if (item.sourceElements) {
+        item.sourceElements.forEach(el => processedElements.add(el));
+      } else {
+        processedElements.add(item);
+      }
+      
+      // Recursively mark children
+      if (item.children && item.children.length > 0) {
+        this.markListElementsAsProcessed(item.children, processedElements);
+      }
+    });
   }
 
   /**

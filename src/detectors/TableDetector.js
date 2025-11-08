@@ -23,7 +23,18 @@ class TableDetector {
     });
     
     // Filter out list elements
-    const filteredElements = elements.filter(el => !listElements.has(el));
+    // Check both the element itself AND its sourceElements (for merged elements)
+    const filteredElements = elements.filter(el => {
+      // If element itself is in list, exclude it
+      if (listElements.has(el)) return false;
+      
+      // If element has sourceElements, check if ANY are in list
+      if (el.sourceElements && el.sourceElements.length > 0) {
+        return !el.sourceElements.some(src => listElements.has(src));
+      }
+      
+      return true;
+    });
     
     // Group into rows if not provided
     if (!rows) {

@@ -144,6 +144,11 @@ class ListDetector {
         if (isSameLine || isIndentedContinuation) {
           // Append to the last list item
           lastItem.text += ' ' + element.text;
+          // IMPORTANT: Track this element to prevent duplicate rendering
+          if (!lastItem.sourceElements) {
+            lastItem.sourceElements = [];
+          }
+          lastItem.sourceElements.push(element);
         } else {
           // End of list
           if (currentList.length > 0) {
